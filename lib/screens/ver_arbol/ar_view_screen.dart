@@ -8,9 +8,10 @@ import 'package:ar_flutter_plugin/managers/ar_location_manager.dart';
 import 'package:ar_flutter_plugin/managers/ar_object_manager.dart';
 import 'package:ar_flutter_plugin/managers/ar_session_manager.dart';
 import 'package:ar_flutter_plugin/models/ar_node.dart';
+import 'package:ar_flutter_plugin/models/ar_hittest_result.dart';
 import 'package:arbolitos/config/theme.dart';
 import 'package:arbolitos/models/arbol_model.dart';
-import 'package:vector_math/vector_math_64.dart';
+import 'package:vector_math/vector_math_64.dart' as v_math; // <-- CORREGIDO
 
 class ARViewScreen extends StatefulWidget {
   final Arbol arbol;
@@ -117,9 +118,9 @@ class _ARViewScreenState extends State<ARViewScreen> {
     final ARNode node = ARNode(
       type: NodeType.webGLB,
       uri: modelUrl,
-      scale: Vector3(0.5, 0.5, 0.5),
+      scale: v_math.Vector3(0.5, 0.5, 0.5), // <-- CORREGIDO
       position: hit.worldTransform.getTranslation(),
-      rotation: Vector4(1.0, 0.0, 0.0, 0.0),
+      rotation: v_math.Vector4(1.0, 0.0, 0.0, 0.0), // <-- CORREGIDO
     );
     
     // Añadir el nodo a la escena

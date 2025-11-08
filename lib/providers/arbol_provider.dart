@@ -1,6 +1,7 @@
 // lib/providers/arbol_provider.dart
 
 import 'dart:io';
+import 'dart:math' as math; // <-- AÑADIDO
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -475,11 +476,11 @@ class ArbolProvider with ChangeNotifier {
     final double dLon = _toRadians(lon2 - lon1);
     
     final double a = 
-      sin(dLat / 2) * sin(dLat / 2) +
-      cos(_toRadians(lat1)) * cos(_toRadians(lat2)) * 
-      sin(dLon / 2) * sin(dLon / 2);
+      math.sin(dLat / 2) * math.sin(dLat / 2) + // <-- CORREGIDO
+      math.cos(_toRadians(lat1)) * math.cos(_toRadians(lat2)) * // <-- CORREGIDO
+      math.sin(dLon / 2) * math.sin(dLon / 2); // <-- CORREGIDO
       
-    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)); // <-- CORREGIDO
     final double distance = earthRadius * c;
     
     return distance;
@@ -487,15 +488,8 @@ class ArbolProvider with ChangeNotifier {
   
   // Convertir grados a radianes
   double _toRadians(double degrees) {
-    return degrees * pi / 180;
+    return degrees * math.pi / 180; // <-- CORREGIDO
   }
   
-  // Funciones matemáticas
-  double sin(double x) => math.sin(x);
-  double cos(double x) => math.cos(x);
-  double sqrt(double x) => math.sqrt(x);
-  double atan2(double y, double x) => math.atan2(y, x);
+  // Funciones matemáticas (ya no son necesarias)
 }
-
-// Importamos dart:math para funciones matemáticas
-import 'dart:math' as math;

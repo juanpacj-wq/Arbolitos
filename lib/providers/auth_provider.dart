@@ -1,9 +1,11 @@
 // lib/providers/auth_provider.dart
 
+import 'dart:io'; // <-- AÑADIDO
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:arbolitos/services/firebase_service.dart';
+import 'package:uuid/uuid.dart'; // <-- AÑADIDO
 
 enum AuthStatus {
   uninitialized,
@@ -201,6 +203,123 @@ class AuthProvider with ChangeNotifier {
       _errorMessage = 'Error al actualizar datos: ${e.toString()}';
       notifyListeners();
       return false;
+    }
+  }
+
+  // --- MÉTODOS AÑADIDOS ---
+
+  Future<void> updateProfilePicture(File imageFile) async {
+    if (_user == null) throw Exception('Usuario no autenticado');
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Subir imagen
+      String fileName = '${const Uuid().v4()}.jpg';
+      String path = 'perfiles/${_user!.uid}/$fileName';
+      
+      final ref = _firebaseService.storage.ref(path);
+      final uploadTask = await ref.putFile(imageFile);
+      final url = await uploadTask.ref.getDownloadURL();
+      
+      // Actualizar URL en Firebase Auth
+      await _user!.updatePhotoURL(url);
+      
+      // Actualizar URL en Firestore
+      await updateUserData({'photoURL': url});
+      
+      // Refrescar usuario local
+      await _user!.reload();
+      _user = _firebaseService.auth.currentUser;
+      
+    } catch (e) {
+      _errorMessage = 'Error al subir imagen: ${e.toString()}';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateDisplayName(String newName) async {
+    if (_user == null) throw Exception('Usuario no autenticado');
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Actualizar en Firebase Auth
+      await _user!.updateDisplayName(newName);
+      
+      // Actualizar en Firestore
+      await updateUserData({'displayName': newName});
+      
+      // Refrescar usuario local
+      await _user!.reload();
+      _user = _firebaseService.auth.currentUser;
+      
+    } catch (e) {
+      _errorMessage = 'Error al actualizar nombre: ${e.toString()}';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    if (_user == null || _user!.email == null) throw Exception('Usuario no autenticado o sin email');
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Re-autenticar al usuario
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: _user!.email!,
+        password: currentPassword,
+      );
+      
+      await _user!.reauthenticateWithCredential(credential);
+      
+      // Cambiar contraseña
+      await _user!.updatePassword(newPassword);
+      
+    } catch (e) {
+      _errorMessage = _handleAuthError(e);
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteAccount(String password) async {
+    if (_user == null || _user!.email == null) throw Exception('Usuario no autenticado o sin email');
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Re-autenticar al usuario
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: _user!.email!,
+        password: password,
+      );
+      
+      await _user!.reauthenticateWithCredential(credential);
+      
+      // Eliminar usuario
+      await _user!.delete();
+      
+      // Limpiar estado (el listener _onAuthStateChanged hará el resto)
+      _user = null;
+      _userData = null;
+      _status = AuthStatus.unauthenticated;
+      
+    } catch (e) {
+      _errorMessage = _handleAuthError(e);
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

@@ -8,6 +8,7 @@ class AppTheme {
   static const Color primaryColor = Color(0xFF10B981); // Verde esmeralda
   static const Color primaryColorLight = Color(0xFFD1FAE5); // Verde claro
   static const Color secondaryColor = Color(0xFF6366F1); // Índigo
+  static const Color accentColor = Color(0xFF6366F1); // AÑADIDO
   static const Color errorColor = Color(0xFFEF4444); // Rojo
   static const Color warningColor = Color(0xFFF59E0B); // Ámbar
 
@@ -42,7 +43,7 @@ class AppTheme {
       onSurface: textColor,
     ),
     scaffoldBackgroundColor: backgroundColor,
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData( // <-- CORREGIDO DE CardTheme A CardThemeData
       color: cardColor,
       elevation: 2,
       shape: RoundedRectangleBorder(

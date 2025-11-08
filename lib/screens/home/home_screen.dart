@@ -8,6 +8,7 @@ import 'package:arbolitos/providers/arbol_provider.dart';
 import 'package:arbolitos/screens/galeria/galeria_screen.dart';
 import 'package:arbolitos/screens/mapa/mapa_screen.dart';
 import 'package:arbolitos/screens/perfil/perfil_screen.dart';
+import 'package:arbolitos/screens/crear_arbol/crear_arbol_screen.dart'; // <-- IMPORT MOVIMIDO AQUÍ
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -111,7 +112,4 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
-}
-
-// Importar pantalla de crear árbol
-import 'package:arbolitos/screens/crear_arbol/crear_arbol_screen.dart';
+} 

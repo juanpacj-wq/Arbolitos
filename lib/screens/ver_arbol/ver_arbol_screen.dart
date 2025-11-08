@@ -1,6 +1,6 @@
 // lib/screens/ver_arbol/ver_arbol_screen.dart
 
-import 'dart:io';
+// import 'dart:io'; // <-- ELIMINADO (Unused import)
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -11,6 +11,7 @@ import 'package:arbolitos/providers/arbol_provider.dart';
 import 'package:arbolitos/widgets/common_widgets.dart';
 import 'package:arbolitos/screens/ver_arbol/ar_view_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:arbolitos/screens/mapa/mapa_screen.dart';
 
 class VerArbolScreen extends StatefulWidget {
   final String arbolId;
@@ -233,7 +234,7 @@ class _VerArbolScreenState extends State<VerArbolScreen> {
         title: Text(_arbol?.nombre ?? 'Detalles del árbol'),
         actions: [
           IconButton(
-            onPressed: _showQrCode,
+            onPressed: () => _showQrCode(context), // <-- CORREGIDO
             icon: const Icon(Icons.qr_code),
             tooltip: 'Mostrar QR',
           ),
@@ -699,6 +700,3 @@ class _VerArbolScreenState extends State<VerArbolScreen> {
     }
   }
 }
-
-// Importar pantalla del mapa
-import 'package:arbolitos/screens/mapa/mapa_screen.dart';

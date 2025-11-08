@@ -1,18 +1,18 @@
 // lib/screens/editar_arbol/editar_arbol_screen.dart
 
-import 'dart:io';
+import 'dart:io'; // <-- CORREGIDO
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:arbolitos/config/theme.dart';
-import 'package:arbolitos/models/arbol_model.dart';
+import 'package:arbolitos/models/arbol_model.dart'; // <-- CORREGIDO
 import 'package:arbolitos/providers/auth_provider.dart';
 import 'package:arbolitos/providers/arbol_provider.dart';
 import 'package:arbolitos/widgets/common_widgets.dart';
-import 'package:arbolitos/screens/mapa/mapa_selector.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:arbolitos/screens/mapa/mapa_selector.dart'; // <-- CORREGIDO
 
 class EditarArbolScreen extends StatefulWidget {
   final String arbolId;
@@ -31,21 +31,19 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _cancionController = TextEditingController();
   
-  bool _isLoading = true;
-  bool _isSaving = false;
-  String _errorMessage = '';
-  Arbol? _arbol;
-  
   String _modelo = "jabami_anime_tree_v2.glb";
   String _nacimiento = "";
   String _fallecimiento = "";
-  List<String> _imagenesActuales = [];
   List<File> _imagenesNuevas = [];
+  List<String> _imagenesActuales = [];
   bool _esPublico = false;
   Ubicacion? _ubicacion;
+  bool _isLoading = true;
+  bool _isSaving = false;
   bool _mostrarMapa = false;
   
   final ImagePicker _picker = ImagePicker();
+  Arbol? _arbolActual;
 
   // Lista de modelos disponibles
   final List<Map<String, dynamic>> _modelosDisponibles = [
@@ -75,11 +73,50 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
       "description": "Una planta en maceta decorativa",
     },
   ];
-  
+
   @override
   void initState() {
     super.initState();
-    _loadArbol();
+    _loadArbolData();
+  }
+  
+  // Cargar datos del árbol
+  Future<void> _loadArbolData() async {
+    try {
+      final arbolProvider = Provider.of<ArbolProvider>(context, listen: false);
+      _arbolActual = await arbolProvider.getArbol(widget.arbolId);
+      
+      if (_arbolActual == null) {
+        throw 'Árbol no encontrado';
+      }
+      
+      // Llenar formulario
+      setState(() {
+        _nombreController.text = _arbolActual!.nombre;
+        _modelo = _arbolActual!.modelo;
+        _nacimiento = _arbolActual!.nacimiento ?? "";
+        _fallecimiento = _arbolActual!.fallecimiento ?? "";
+        _cancionController.text = _arbolActual!.cancion ?? "";
+        _imagenesActuales = List<String>.from(_arbolActual!.imagenes);
+        _esPublico = _arbolActual!.esPublico;
+        _ubicacion = _arbolActual!.ubicacion;
+        _isLoading = false;
+      });
+      
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar datos del árbol: $e'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+      
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -87,48 +124,6 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
     _nombreController.dispose();
     _cancionController.dispose();
     super.dispose();
-  }
-  
-  // Cargar datos del árbol a editar
-  Future<void> _loadArbol() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-    
-    final arbolProvider = Provider.of<ArbolProvider>(context, listen: false);
-    
-    try {
-      _arbol = await arbolProvider.getArbol(widget.arbolId);
-      
-      if (_arbol == null) {
-        setState(() {
-          _errorMessage = 'No se encontró el árbol solicitado.';
-        });
-        return;
-      }
-      
-      // Llenar formulario con datos del árbol
-      _nombreController.text = _arbol!.nombre;
-      _modelo = _arbol!.modelo;
-      _nacimiento = _arbol!.nacimiento ?? '';
-      _fallecimiento = _arbol!.fallecimiento ?? '';
-      _cancionController.text = _arbol!.cancion ?? '';
-      _imagenesActuales = List<String>.from(_arbol!.imagenes);
-      _esPublico = _arbol!.esPublico;
-      
-      if (_arbol!.ubicacion != null) {
-        _ubicacion = _arbol!.ubicacion;
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error al cargar el árbol: $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   // Seleccionar imágenes de la galería
@@ -140,8 +135,10 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
         // Convertir a File y agregar a la lista
         final List<File> imageFiles = selectedImages.map((xFile) => File(xFile.path)).toList();
         
-        // Verificar límite de 5 imágenes en total (actuales + nuevas)
-        if (_imagenesActuales.length + _imagenesNuevas.length + imageFiles.length > 5) {
+        // Verificar límite de 5 imágenes
+        final int totalImagenes = _imagenesActuales.length + _imagenesNuevas.length + imageFiles.length;
+        
+        if (totalImagenes > 5) {
           // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -150,7 +147,6 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
             ),
           );
           
-          // Tomar solo las que faltan para llegar a 5
           final int espacioDisponible = 5 - (_imagenesActuales.length + _imagenesNuevas.length);
           if (espacioDisponible > 0) {
             setState(() {
@@ -168,17 +164,18 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
     }
   }
   
-  // Eliminar imagen actual
-  void _removeCurrentImage(int index) {
-    setState(() {
-      _imagenesActuales.removeAt(index);
-    });
-  }
-  
-  // Eliminar imagen nueva
+  // Eliminar imagen nueva (local)
   void _removeNewImage(int index) {
     setState(() {
       _imagenesNuevas.removeAt(index);
+    });
+  }
+  
+  // Eliminar imagen existente (de la URL)
+  void _removeExistingImage(int index) {
+    setState(() {
+      _imagenesActuales.removeAt(index);
+      // Nota: La eliminación física del storage se maneja en el provider al guardar
     });
   }
   
@@ -262,7 +259,7 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
         throw 'Usuario no autenticado';
       }
       
-      // Actualizar árbol
+      // Actualizar el árbol
       final bool success = await arbolProvider.updateArbol(
         arbolId: widget.arbolId,
         nombre: _nombreController.text.trim(),
@@ -280,7 +277,7 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cambios guardados correctamente'),
+            content: Text('Árbol actualizado correctamente'),
             backgroundColor: Colors.green,
           ),
         );
@@ -309,11 +306,15 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
-          : _errorMessage.isNotEmpty
-              ? Center(
-                  child: ErrorMessage(
-                    message: _errorMessage,
-                    onRetry: _loadArbol,
+          : _isSaving
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: AppTheme.primaryColor),
+                      SizedBox(height: 16),
+                      Text('Guardando cambios...'),
+                    ],
                   ),
                 )
               : _mostrarMapa
@@ -649,9 +650,7 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
                         onTap: () async {
                           final DateTime? picked = await showDatePicker(
                             context: context,
-                            initialDate: _nacimiento.isNotEmpty
-                                ? DateTime.parse(_nacimiento)
-                                : DateTime.now(),
+                            initialDate: _nacimiento.isNotEmpty ? DateTime.tryParse(_nacimiento) : DateTime.now(),
                             firstDate: DateTime(1900),
                             lastDate: DateTime.now(),
                           );
@@ -706,9 +705,7 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
                         onTap: () async {
                           final DateTime? picked = await showDatePicker(
                             context: context,
-                            initialDate: _fallecimiento.isNotEmpty
-                                ? DateTime.parse(_fallecimiento)
-                                : DateTime.now(),
+                            initialDate: _fallecimiento.isNotEmpty ? DateTime.tryParse(_fallecimiento) : DateTime.now(),
                             firstDate: DateTime(1900),
                             lastDate: DateTime.now(),
                           );
@@ -758,12 +755,12 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
             
             const SizedBox(height: 24),
             
-            // Imágenes actuales
+            // Selector de imágenes
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Imágenes actuales',
+                  'Imágenes (máximo 5)',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -772,141 +769,69 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
                 
                 const SizedBox(height: 8),
                 
-                _imagenesActuales.isEmpty
-                    ? Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppTheme.borderColor,
-                            style: BorderStyle.dashed,
-                            width: 2,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'No hay imágenes guardadas',
-                            style: TextStyle(color: AppTheme.textColorLight),
-                          ),
-                        ),
-                      )
-                    : SizedBox(
-                        height: 100,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _imagenesActuales.length,
-                          itemBuilder: (context, index) {
-                            return Container(
-                              width: 100,
-                              height: 100,
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
+                // Previsualización de imágenes existentes
+                if (_imagenesActuales.isNotEmpty) ...[
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _imagenesActuales.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppTheme.borderColor),
+                                child: CachedNetworkImage(
+                                  imageUrl: _imagenesActuales[index],
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    width: 100,
+                                    height: 100,
+                                    color: Colors.grey[200],
+                                    child: const Center(child: CircularProgressIndicator()),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    width: 100,
+                                    height: 100,
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.error),
+                                  ),
+                                ),
                               ),
-                              clipBehavior: Clip.hardEdge,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  CachedNetworkImage(
-                                    imageUrl: _imagenesActuales[index],
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => const Center(
-                                      child: CircularProgressIndicator(
-                                        color: AppTheme.primaryColor,
-                                        strokeWidth: 2,
-                                      ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => _removeExistingImage(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
                                     ),
-                                    errorWidget: (context, url, error) => const Center(
-                                      child: Icon(Icons.error, color: AppTheme.errorColor),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 16,
                                     ),
                                   ),
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: GestureDetector(
-                                      onTap: () => _removeCurrentImage(index),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black54,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.close,
-                                          color: Colors.white,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            );
-                          },
-                        ),
-                      ),
-              ],
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Selector de imágenes nuevas
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Agregar nuevas imágenes',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                
-                const SizedBox(height: 8),
-                
-                InkWell(
-                  onTap: _selectImages,
-                  child: Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppTheme.borderColor,
-                        style: BorderStyle.dashed,
-                        width: 2,
-                      ),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.photo_library, size: 48, color: Colors.grey.withOpacity(0.5)),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Toca para seleccionar imágenes',
-                            style: TextStyle(color: AppTheme.textColorLight),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Puedes seleccionar ${5 - _imagenesActuales.length - _imagenesNuevas.length} imagen(es) más',
-                            style: const TextStyle(
-                              color: AppTheme.textColorLight,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
-                ),
-                
-                // Previsualización de imágenes seleccionadas
-                if (_imagenesNuevas.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  
+                ],
+                
+                // Previsualización de imágenes nuevas
+                if (_imagenesNuevas.isNotEmpty) ...[
                   SizedBox(
                     height: 100,
                     child: ListView.builder(
@@ -951,7 +876,39 @@ class _EditarArbolScreenState extends State<EditarArbolScreen> {
                       },
                     ),
                   ),
+                  const SizedBox(height: 16),
                 ],
+                
+                // Botón para añadir más imágenes
+                if (_imagenesActuales.length + _imagenesNuevas.length < 5)
+                  InkWell(
+                    onTap: _selectImages,
+                    child: Container(
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.borderColor,
+                          style: BorderStyle.solid, // <-- CORREGIDO
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_a_photo, size: 36, color: Colors.grey.withOpacity(0.5)),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Añadir más imágenes',
+                              style: TextStyle(color: AppTheme.textColorLight),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
             

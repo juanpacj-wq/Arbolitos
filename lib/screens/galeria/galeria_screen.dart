@@ -10,6 +10,8 @@ import 'package:arbolitos/screens/ver_arbol/ver_arbol_screen.dart';
 import 'package:arbolitos/screens/editar_arbol/editar_arbol_screen.dart';
 import 'package:arbolitos/widgets/common_widgets.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:arbolitos/screens/crear_arbol/crear_arbol_screen.dart'; // <-- IMPORT MOVIMIDO AQUÍ
+import 'package:arbolitos/screens/mapa/mapa_screen.dart'; // <-- AÑADIDO (para la acción 'Ver en Mapa')
 
 class GaleriaScreen extends StatefulWidget {
   const GaleriaScreen({Key? key}) : super(key: key);
@@ -336,6 +338,3 @@ class _GaleriaScreenState extends State<GaleriaScreen> {
     );
   }
 }
-
-// Importar pantalla de crear árbol
-import 'package:arbolitos/screens/crear_arbol/crear_arbol_screen.dart';

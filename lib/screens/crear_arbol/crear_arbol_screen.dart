@@ -11,7 +11,7 @@ import 'package:arbolitos/models/arbol_model.dart';
 import 'package:arbolitos/providers/auth_provider.dart';
 import 'package:arbolitos/providers/arbol_provider.dart';
 import 'package:arbolitos/widgets/common_widgets.dart';
-import 'package:arbolitos/screens/mapa/mapa_selector.dart';
+import 'package:arbolitos/screens/mapa/mapa_selector.dart'; // <-- IMPORT MOVIMIDO AQUÍ
 
 class CrearArbolScreen extends StatefulWidget {
   const CrearArbolScreen({Key? key}) : super(key: key);
@@ -703,7 +703,7 @@ class _CrearArbolScreenState extends State<CrearArbolScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: AppTheme.borderColor,
-                        style: BorderStyle.dashed,
+                        style: BorderStyle.solid, // <-- CORREGIDO
                         width: 2,
                       ),
                     ),

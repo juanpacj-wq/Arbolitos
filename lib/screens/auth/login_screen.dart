@@ -250,11 +250,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           );
                         },
-                        icon: Image.asset(
-                          'assets/images/google_logo.png',
-                          width: 24,
-                          height: 24,
-                        ),
+                        icon: const Icon(Icons.g_mobiledata_outlined), // <-- CORREGIDO
                         label: const Text('Continuar con Google'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
