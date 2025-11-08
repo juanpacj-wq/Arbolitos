@@ -59,6 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // FAB para crear nuevo árbol
   Widget _buildFab(BuildContext context) {
     return FloatingActionButton(
+      // Añadimos un heroTag único para evitar conflictos de animación
+      heroTag: 'home_fab_button',
       onPressed: () {
         // Navegar a la pantalla de crear árbol
         Navigator.push(
@@ -109,7 +111,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: _buildFab(context),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // Se cambia la ubicación para evitar que se superponga al botón "Mapa"
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
-} 
+}

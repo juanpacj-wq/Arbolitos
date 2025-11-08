@@ -93,7 +93,10 @@ class _MapaSelectorState extends State<MapaSelector> {
       }
       
       // Obtener ubicación
-      final Position position = await Geolocator.getCurrentPosition();
+      final Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10), // Añadir un timeout
+      );
       
       // Actualizar cámara y marcador
       final GoogleMapController controller = await _controller.future;
@@ -103,7 +106,7 @@ class _MapaSelectorState extends State<MapaSelector> {
       ));
       
       // Obtener dirección
-      _getAddressFromLatLng(position.latitude, position.longitude);
+      await _getAddressFromLatLng(position.latitude, position.longitude);
       
       setState(() {
         _marker = Marker(
@@ -114,10 +117,24 @@ class _MapaSelectorState extends State<MapaSelector> {
         );
       });
     } catch (e) {
+      // ---- INICIO DE LA MODIFICACIÓN ----
+      // Manejo de errores mejorado
+      print('Error en _getCurrentLocation: $e'); // Imprime el error real en la consola de depuración
+      
+      String friendlyError;
+      if (e is String) {
+        friendlyError = e; // Usar el mensaje de error personalizado (ej. 'Permiso denegado')
+      } else if (e is TimeoutException) {
+        friendlyError = 'No se pudo obtener la ubicación (tiempo de espera agotado).';
+      } else {
+        friendlyError = 'No se pudo determinar la ubicación. Verifica tus permisos y conexión.';
+      }
+
       setState(() {
         _locationError = true;
-        _errorMessage = 'Error al obtener ubicación: $e';
+        _errorMessage = friendlyError;
       });
+      // ---- FIN DE LA MODIFICACIÓN ----
     } finally {
       setState(() {
         _isLoading = false;
@@ -185,7 +202,7 @@ class _MapaSelectorState extends State<MapaSelector> {
         });
         
         // Obtener dirección completa
-        _getAddressFromLatLng(location.latitude, location.longitude);
+        await _getAddressFromLatLng(location.latitude, location.longitude);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -244,13 +261,13 @@ class _MapaSelectorState extends State<MapaSelector> {
         });
       }
     } catch (e) {
-      print('Error al obtener dirección: $e');
+      print('Error al obtener dirección (geocoding): $e');
       
       setState(() {
         _selectedLocation = Ubicacion(
           lat: lat,
           lng: lng,
-          direccion: 'Ubicación seleccionada',
+          direccion: 'Ubicación seleccionada (dirección no disponible)',
           geohash: Ubicacion.generarGeohash(lat, lng),
         );
       });
