@@ -1,12 +1,13 @@
 // lib/models/arbol_model.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geohash_plus/geohash_plus.dart'; // <-- Import (está correcto)
 
 class Arbol {
   final String? id;
   final String uid; // ID del usuario propietario
   final String nombre;
-  final String modelo;
+  final String modelo; // Sigue siendo solo el nombre del archivo, ej: tree_elm.glb
   final String? nacimiento;
   final String? fallecimiento;
   final String? cancion;
@@ -15,6 +16,15 @@ class Arbol {
   final bool esPublico;
   final Ubicacion? ubicacion;
   final String usuarioNombre;
+  
+  // --- GETTER AÑADIDO (Sin cambios, esto está bien) ---
+  String get modeloUrl {
+    const String bucket = "memorialapp-b1ccf.firebasestorage.app";
+    const String folder = "modelos_3d";
+    final String encodedModelo = Uri.encodeComponent(modelo);
+    return "https://firebasestorage.googleapis.com/v0/b/$bucket/o/$folder%2F$encodedModelo?alt=media";
+  }
+  // -----------------------
   
   Arbol({
     this.id,
@@ -31,11 +41,10 @@ class Arbol {
     required this.usuarioNombre,
   });
   
-  // Factory constructor from Firestore document
+  // Factory constructor from Firestore document (Sin cambios)
   factory Arbol.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     
-    // Handle ubicacion data
     Ubicacion? ubicacion;
     if (data['ubicacion'] != null) {
       ubicacion = Ubicacion(
@@ -46,7 +55,6 @@ class Arbol {
       );
     }
     
-    // Handle imagenes data
     List<String> imagenes = [];
     if (data['imagenes'] != null) {
       imagenes = List<String>.from(data['imagenes']);
@@ -56,7 +64,7 @@ class Arbol {
       id: doc.id,
       uid: data['uid'] ?? '',
       nombre: data['nombre'] ?? '',
-      modelo: data['modelo'] ?? 'jabami_anime_tree_v2.glb',
+      modelo: data['modelo'] ?? 'tree_elm.glb', 
       nacimiento: data['nacimiento'],
       fallecimiento: data['fallecimiento'],
       cancion: data['cancion'],
@@ -68,7 +76,7 @@ class Arbol {
     );
   }
   
-  // Convert model to Map for Firestore
+  // Convert model to Map for Firestore (Sin cambios)
   Map<String, dynamic> toFirestore() {
     Map<String, dynamic> data = {
       'uid': uid,
@@ -83,13 +91,12 @@ class Arbol {
       'usuarioNombre': usuarioNombre,
     };
     
-    // Add ubicacion if available
     if (ubicacion != null) {
       data['ubicacion'] = {
         'lat': ubicacion!.lat,
         'lng': ubicacion!.lng,
         'direccion': ubicacion!.direccion,
-        'geohash': ubicacion!.geohash,
+        'geohash': Ubicacion.generarGeohash(ubicacion!.lat, ubicacion!.lng),
       };
     }
     
@@ -110,11 +117,9 @@ class Ubicacion {
     required this.geohash,
   });
   
-  // Generar geohash simple para Firebase
+  // CORREGIDO: Esta es la sintaxis correcta.
   static String generarGeohash(double lat, double lng) {
-    final int precision = 5;
-    final String latStr = lat.toStringAsFixed(precision);
-    final String lngStr = lng.toStringAsFixed(precision);
-    return '$latStr,$lngStr';
+    // Usamos una precisión de 7 caracteres (aprox 150m de precisión)
+    return GeoHash.encode(lat, lng, precision: 7).hash;
   }
 }

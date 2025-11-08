@@ -40,7 +40,8 @@ dependencies:
   model_viewer_plus: ^1.7.0
   google_maps_flutter: ^2.5.3
   geocoding: ^2.1.1
-  package_info_plus: ^5.0.1 # <-- AÑADIDO
+  geohash_plus: ^1.1.1 # <-- CORREGIDO Y DEFINITIVO.
+  package_info_plus: ^5.0.1
   
   # ARCore and ARKit for AR functionality
   ar_flutter_plugin: ^0.7.3

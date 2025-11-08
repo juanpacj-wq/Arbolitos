@@ -8,6 +8,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'package:arbolitos/services/firebase_service.dart';
 import 'package:arbolitos/models/arbol_model.dart';
+import 'package:geohash_plus/geohash_plus.dart'; // <-- AÑADIDO
 
 class ArbolProvider with ChangeNotifier {
   final FirebaseService _firebaseService = FirebaseService();
@@ -160,7 +161,8 @@ class ArbolProvider with ChangeNotifier {
           'lat': ubicacion.lat,
           'lng': ubicacion.lng,
           'direccion': ubicacion.direccion,
-          'geohash': ubicacion.geohash,
+          // CORREGIDO: Usar el método estático que arreglamos
+          'geohash': Ubicacion.generarGeohash(ubicacion.lat, ubicacion.lng),
         };
       }
       
@@ -267,7 +269,8 @@ class ArbolProvider with ChangeNotifier {
           'lat': ubicacion.lat,
           'lng': ubicacion.lng,
           'direccion': ubicacion.direccion,
-          'geohash': ubicacion.geohash,
+          // CORREGIDO: Usar el método estático que arreglamos
+          'geohash': Ubicacion.generarGeohash(ubicacion.lat, ubicacion.lng),
         };
       } else {
         // Si no es público, eliminar ubicación si existe
@@ -422,22 +425,40 @@ class ArbolProvider with ChangeNotifier {
     }
   }
   
-  // Obtener árboles cercanos (basado en geohash)
+  // --- MÉTODO CORREGIDO PARA USAR GEOHASH ---
   Future<List<Arbol>> getArbolesCercanos(double lat, double lng, double radioKm) async {
     try {
       _isLoading = true;
       _errorMessage = '';
       notifyListeners();
       
-      // Obtener todos los árboles públicos (en una aplicación real usaríamos GeoFirestore)
+      // 1. Generar geohash del centro (misma precisión que al guardar)
+      final centerHash = GeoHash.encode(lat, lng, precision: 7);
+      
+      // 2. Obtener los 8 vecinos (y el centro)
+      final List<String> geohashArea = [
+        centerHash.hash,
+        centerHash.adjacent(Direction.north).hash,
+        centerHash.adjacent(Direction.south).hash,
+        centerHash.adjacent(Direction.east).hash,
+        centerHash.adjacent(Direction.west).hash,
+        centerHash.adjacent(Direction.northEast).hash,
+        centerHash.adjacent(Direction.northWest).hash,
+        centerHash.adjacent(Direction.southEast).hash,
+        centerHash.adjacent(Direction.southWest).hash,
+      ];
+      
+      // 3. Hacer una consulta 'whereIn' (mucho más eficiente)
+      //    Firestore permite hasta 10 items en 'whereIn', así que 9 está perfecto.
       final snapshot = await _firestore
           .collection('arboles')
           .where('esPublico', isEqualTo: true)
+          .where('ubicacion.geohash', whereIn: geohashArea)
           .get();
       
       final List<Arbol> arbolesCercanos = [];
       
-      // Filtrar manualmente por distancia
+      // 4. Filtrar manualmente por distancia (el geohash trae un "cuadrado")
       for (var doc in snapshot.docs) {
         final arbol = Arbol.fromFirestore(doc);
         
@@ -490,6 +511,4 @@ class ArbolProvider with ChangeNotifier {
   double _toRadians(double degrees) {
     return degrees * math.pi / 180; // <-- CORREGIDO
   }
-  
-  // Funciones matemáticas (ya no son necesarias)
 }
