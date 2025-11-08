@@ -1,10 +1,11 @@
 // lib/services/firebase_service.dart
 
-import 'dart:io'; // <-- AÑADIDO
+import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // <-- AÑADIDO
 
 class FirebaseService {
   // Singleton pattern
@@ -20,6 +21,7 @@ class FirebaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(); // <-- AÑADIDO
   
   // Getters for instances
   FirebaseAuth get auth => _auth;
@@ -56,9 +58,42 @@ class FirebaseService {
       rethrow;
     }
   }
+
+  // --- MÉTODO AÑADIDO PARA GOOGLE SIGN-IN ---
+  Future<UserCredential> signInWithGoogle() async {
+    try {
+      // Iniciar el flujo de Google Sign-In
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        // El usuario canceló el flujo
+        throw FirebaseAuthException(
+          code: 'sign-in-cancelled',
+          message: 'El inicio de sesión con Google fue cancelado',
+        );
+      }
+      
+      // Obtener los detalles de autenticación
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      // Crear una credencial de Firebase
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      
+      // Iniciar sesión en Firebase con la credencial
+      return await _auth.signInWithCredential(credential);
+      
+    } catch (e) {
+      rethrow;
+    }
+  }
   
   Future<void> signOut() async {
     try {
+      // También cerrar sesión de Google si estaba iniciada
+      await _googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {
       rethrow;

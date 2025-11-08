@@ -1,11 +1,11 @@
 // lib/providers/auth_provider.dart
 
-import 'dart:io'; // <-- AÑADIDO
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:arbolitos/services/firebase_service.dart';
-import 'package:uuid/uuid.dart'; // <-- AÑADIDO
+import 'package:uuid/uuid.dart';
 
 enum AuthStatus {
   uninitialized,
@@ -28,7 +28,7 @@ class AuthProvider with ChangeNotifier {
   String get errorMessage => _errorMessage;
   bool get isLoading => _isLoading;
   Map<String, dynamic>? get userData => _userData;
-  bool get isAuthenticated => _status == AuthStatus.authenticated;
+  bool get isAuthenticated => _status == AuthStatus.authenticated; // <-- CORREGIDO
   
   // Constructor
   AuthProvider() {
@@ -106,6 +106,38 @@ class AuthProvider with ChangeNotifier {
       return false;
     }
   }
+
+  // --- MÉTODO AÑADIDO PARA GOOGLE SIGN-IN ---
+  Future<bool> signInWithGoogle() async {
+    try {
+      _isLoading = true;
+      _errorMessage = '';
+      notifyListeners();
+      
+      UserCredential userCredential = await _firebaseService.signInWithGoogle();
+      
+      // Si el usuario es nuevo, guardar sus datos en Firestore
+      if (userCredential.additionalUserInfo?.isNewUser == true) {
+        User user = userCredential.user!;
+        await _firebaseService.saveUserData(user.uid, {
+          'uid': user.uid,
+          'email': user.email,
+          'displayName': user.displayName,
+          'photoURL': user.photoURL,
+          'creadoEn': FieldValue.serverTimestamp(),
+        });
+      }
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = _handleAuthError(e);
+      notifyListeners();
+      return false;
+    }
+  }
   
   // Cerrar sesión
   Future<void> signOut() async {
@@ -148,7 +180,7 @@ class AuthProvider with ChangeNotifier {
           break;
         case 'user-disabled':
           errorMessage = 'Esta cuenta ha sido deshabilitada';
-          break;
+break;
         case 'user-not-found':
           errorMessage = 'No existe una cuenta con este correo electrónico';
           break;
@@ -169,6 +201,13 @@ class AuthProvider with ChangeNotifier {
           break;
         case 'too-many-requests':
           errorMessage = 'Demasiados intentos fallidos. Intenta más tarde';
+          break;
+        // --- AÑADIDO PARA GOOGLE ---
+        case 'sign-in-cancelled':
+          errorMessage = 'Inicio de sesión cancelado';
+          break;
+        case 'account-exists-with-different-credential':
+          errorMessage = 'Ya existe una cuenta con este correo, pero con un método de inicio de sesión diferente';
           break;
         default:
           errorMessage = 'Error: ${e.message}';

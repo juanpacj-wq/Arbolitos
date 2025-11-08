@@ -8,6 +8,7 @@ import 'package:arbolitos/screens/auth/register_screen.dart';
 import 'package:arbolitos/screens/auth/forgot_password_screen.dart';
 import 'package:arbolitos/screens/home/home_screen.dart';
 import 'package:arbolitos/widgets/common_widgets.dart';
+import 'package:flutter_svg/flutter_svg.dart'; // <-- AÑADIDO
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -30,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Método para iniciar sesión
+  // Método para iniciar sesión con Email/Pass
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -41,10 +42,25 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       
       if (success && mounted) {
+        // authProvider.errorMessage = ''; // <-- LÍNEA ELIMINADA (CORREGIDO)
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
+    }
+  }
+
+  // --- MÉTODO AÑADIDO PARA GOOGLE SIGN-IN ---
+  Future<void> _loginWithGoogle() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    final bool success = await authProvider.signInWithGoogle();
+    
+    if (success && mounted) {
+      // authProvider.errorMessage = ''; // <-- LÍNEA ELIMINADA (CORREGIDO)
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     }
   }
 
@@ -207,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
                       
                       // Mensajes de error
-                      if (authProvider.errorMessage.isNotEmpty) ...[
+                      if (authProvider.errorMessage.isNotEmpty && !authProvider.isLoading) ...[
                         ErrorMessage(
                           message: authProvider.errorMessage,
                         ),
@@ -242,15 +258,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       
                       // Botón de Google
                       OutlinedButton.icon(
-                        onPressed: () {
-                          // TODO: Implementar inicio de sesión con Google
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Próximamente: Inicio de sesión con Google'),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.g_mobiledata_outlined), // <-- CORREGIDO
+                        // --- LÓGICA DE ONPRESSED ACTUALIZADA ---
+                        onPressed: authProvider.isLoading ? null : _loginWithGoogle,
+                        
+                        // --- ICONO ACTUALIZADO ---
+                        // Asegúrate de tener un 'google_icon.svg' en 'assets/icons/'
+                        icon: SvgPicture.asset( 
+                          'assets/icons/google_icon.svg',
+                          height: 22,
+                          width: 22,
+                        ),
                         label: const Text('Continuar con Google'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
