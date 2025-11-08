@@ -17,6 +17,7 @@ dependencies:
   firebase_auth: ^4.17.5
   cloud_firestore: ^4.15.5
   firebase_storage: ^11.6.6
+  google_sign_in: ^6.2.1
   
   # UI/UX
   flutter_svg: ^2.0.9
@@ -34,7 +35,7 @@ dependencies:
   shared_preferences: ^2.2.2
   provider: ^6.1.1
   equatable: ^2.0.5
-  geolocator: ^9.0.2 # <-- MODIFICADO para compatibilidad con ar_flutter_plugin
+  geolocator: ^9.0.2 
   qr_flutter: ^4.1.0
   model_viewer_plus: ^1.7.0
   google_maps_flutter: ^2.5.3
@@ -43,7 +44,7 @@ dependencies:
   
   # ARCore and ARKit for AR functionality
   ar_flutter_plugin: ^0.7.3
-  vector_math: ^2.1.4 # <-- AÑADIDO
+  vector_math: ^2.1.4
 
 dev_dependencies:
   flutter_test:
